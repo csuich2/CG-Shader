@@ -1,0 +1,9 @@
+struct output {
+	float4 color : COLOR;
+};
+
+output main(float4 color : COLOR) {
+	output OUT;
+	OUT.color = color;
+	return OUT;
+}
