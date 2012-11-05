@@ -2,16 +2,9 @@
 #include <stdio.h>
 #include <gl/glut.h>
 #include "glm/glm.h"
-//#include <string>
-//#include <vector>
-//#include <iostream>
-//#include <fstream>
-//#include <sstream>
-//#include <math.h>
 #include "common.h"
 #include <Cg/cg.h>
 #include <Cg/cgGl.h>
-//using namespace std;
 using namespace Raytracer;
 
 #define APP_NAME "Assignment 3"
@@ -39,13 +32,7 @@ static CGprofile   myCgVertexProfile,
 				   myCgFragmentProfile;
 static CGprogram   myCgVertexProgram,
 				   myCgFragmentProgram;
-static CGparameter myCgVertexParam_lightColor,
-				   myCgVertexParam_lightPosition,
-				   myCgVertexParam_eyePosition,
-				   myCgVertexParam_Ka,
-				   myCgVertexParam_Kd,
-				   myCgVertexParam_Ks,
-				   myCgVertexParam_shininess;
+static CGparameter myCgFragmentParam_eyePosition;
 
 static const char *myVertexProgramFileName = "vertex.cg",
 				  *myVertexProgramName = "main",
@@ -109,25 +96,6 @@ void main() {
 	cgGLLoadProgram(myCgVertexProgram);
 	checkForCgError("loading vertex program");
 
-#define GET_PARAM(name) \
-	myCgVertexParam_##name = \
-		cgGetNamedParameter(myCgVertexProgram, #name); \
-	checkForCgError("could not get " #name " parameter");
-
-	GET_PARAM(lightColor);
-	GET_PARAM(lightPosition);
-	GET_PARAM(eyePosition);
-	GET_PARAM(Ka);
-	GET_PARAM(Kd);
-	GET_PARAM(Ks);
-	GET_PARAM(shininess);
-
-	//cgGLSetParameter3f(myCgVertexParam_lightColor, 1,1,1);
-	//cgGLSetParameter3f(myCgVertexParam_lightPosition, 0,5,0);
-	cgGLSetParameter3f(myCgVertexParam_eyePosition, 0,0,-2);
-
-	cgUpdateProgramParameters(myCgVertexProgram);
-
 	myCgFragmentProfile = cgGLGetLatestProfile(CG_GL_FRAGMENT);
 	cgGLSetOptimalOptions(myCgFragmentProfile);
 	checkForCgError("selecting fragment profile");
@@ -144,18 +112,28 @@ void main() {
 	cgGLLoadProgram(myCgFragmentProgram);
 	checkForCgError("loading fragment program");
 
+#define GET_PARAM(name) \
+	myCgFragmentParam_##name = \
+		cgGetNamedParameter(myCgFragmentProgram, #name); \
+	checkForCgError("could not get " #name " parameter");
+
+	GET_PARAM(eyePosition);
+
+	cgGLSetParameter3f(myCgFragmentParam_eyePosition, 0,0,-2);
+	cgUpdateProgramParameters(myCgFragmentProgram);
+
 	glLightfv(GL_LIGHT0, GL_SPECULAR, light_specular);
 	glLightfv(GL_LIGHT0, GL_DIFFUSE, light_diffuse);
 	glLightfv(GL_LIGHT0, GL_AMBIENT, light_ambient);
 	glLightfv(GL_LIGHT0, GL_POSITION, light_position);
-	//glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
+	glLightModelf(GL_LIGHT_MODEL_TWO_SIDE, GL_TRUE);
 
 	//glEnable(GL_LIGHTING);
 	//glEnable(GL_LIGHT0);
 	//glEnable(GL_NORMALIZE);
 	//glEnable(GL_SMOOTH);
-	//glEnable(GL_DEPTH_TEST);
-	//glDepthFunc(GL_LEQUAL);
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LEQUAL);
 
 	glutMainLoop();
 }
@@ -194,6 +172,7 @@ void glutKeyboard(unsigned char key, int x, int y) {
 			light_position[2] = 0.0f;
 		else
 			light_position[2] = -5.0f;
+		glLightfv(GL_LIGHT0, GL_POSITION, light_position);
 		printf("Light overhead? %d\n", lightOverhead);
 	} else if (key == 'u' || key == 'U') {
 		printf("Unitizing models\n");
@@ -238,24 +217,30 @@ void glutDisplay() {
 	checkForCgError("enabling fragment profile");
 
 	int i, j;
-	glBegin(GL_TRIANGLES);
 	GLMgroup *group = model->groups;
 	while (group) {
 		GLMmaterial material = model->materials[group->material];
+		glMaterialfv(GL_FRONT_AND_BACK, GL_AMBIENT, material.ambient);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_DIFFUSE, material.diffuse);
+		glMaterialfv(GL_FRONT_AND_BACK, GL_SPECULAR, material.specular);
+		glMaterialf(GL_FRONT_AND_BACK, GL_SHININESS, material.shininess);
+		glBegin(GL_TRIANGLES);
 		for (i=0; i<group->numtriangles; i++) {
-			int triangle = group->triangles[i];
-			glNormal3fv(&model->facetnorms[3*model->triangles[triangle].findex]);
+			int triangleIndex = group->triangles[i];
+			GLMtriangle triangle = model->triangles[triangleIndex];
+			//glNormal3fv(&model->facetnorms[3*triangle.findex]);
 			for (j=0; j<3; j++) {
-				int index = model->triangles[triangle].vindices[j];
+				int index = triangle.vindices[j];
 				vector3 vertex(model->vertices[3*index],		// x
 								model->vertices[3*index+1],		// y
 								model->vertices[3*index+2]);	// z
+				glNormal3fv(&model->normals[3*triangle.nindices[j]]);
 				glVertex3f(vertex.x, vertex.y, vertex.z);
 			}
 		}
+		glEnd();
 		group = group->next;
 	}
-	glEnd();
 
 	cgGLDisableProfile(myCgVertexProfile);
 	checkForCgError("disabling vertex profile");
@@ -270,4 +255,5 @@ void getObjModel() {
 	model = glmReadOBJ("input.obj");
 	glmFacetNormals(model);
 	glmVertexNormals(model, 89); // 89 because 90 creates weird shadows on flat surfaces
+	//glmUnitize(model);
 }

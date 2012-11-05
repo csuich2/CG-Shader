@@ -1,48 +1,17 @@
-struct input {
-	float4 position : POSITION;
-	float4 normal   : NORMAL;
-};
-
 struct output {
-	float4 position	: POSITION;
-	float4 color	: COLOR;
+	float4 pos	    : POSITION;
+	float3 position	: TEXCOORD0;
+	float3 normal	: TEXCOORD1;
 };
 
 output main(float4 position : POSITION,
 			float3 normal	: NORMAL,
-			uniform float4x4 modelViewProj : state.matrix.mvp,
-			uniform float3   lightAmbient  : state.light[0].ambient,
-			uniform float3   lightDiffuse  : state.light[0].diffuse,
-			uniform float3   lightSpecular : state.light[0].specular,
-			uniform float3	 lightPosition : state.light[0].position,
-			uniform float3	 eyePosition,
-			uniform float3	 Ka : state.material.ambient,
-			uniform float3	 Kd : state.material.diffuse,
-			uniform float3	 Ks : state.material.specular,
-			uniform float3	 shininess : state.material.shininess) {
+			uniform float4x4 modelViewProj : state.matrix.mvp) {
 	output OUT;
 
-	float3 P = position.xyz;
-	float3 N = normal;
-	
-	// Ambient
-	float3 ambient = Ka * lightAmbient;
-
-	// Diffuse
-	float3 L = normalize(lightPosition - P);
-	float diffuseLight = max(dot(N, L), 0);
-	float3 diffuse = Kd * lightDiffuse * diffuseLight;
-
-	// Specular
-	float3 V = normalize(eyePosition - P);
-	float3 H = normalize(L + V);
-	float specularLight = pow(max(dot(N, H), 0), shininess);
-	if (diffuseLight <= 0) specularLight = 0;
-	float3 specular = Ks * lightSpecular * specularLight;
-
-	OUT.position = mul(modelViewProj, position);
-	OUT.color.xyz = ambient + diffuse + specular;
-	OUT.color.a = 1;
+	OUT.pos = mul(modelViewProj, position);
+	OUT.position = position.xyz;
+	OUT.normal = normal;
 
 	return OUT;
 }
