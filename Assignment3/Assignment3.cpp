@@ -296,7 +296,7 @@ void glutDisplay() {
 }
 
 void getObjModel() {
-	model = glmReadOBJ("objects/gourd.obj");
+	model = glmReadOBJ("input.obj");
 	glmFacetNormals(model);
 	glmVertexNormals(model, 89); // 89 because 90 creates weird shadows on flat surfaces
 	//glmUnitize(model);
