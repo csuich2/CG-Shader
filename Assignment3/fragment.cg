@@ -1,15 +1,37 @@
+// Code here is adopted from the NVIDIA examples:
+//	09_vertex_lighting and
+//	11_two_lights_with_structs
+
 struct output {
 	float4 color	: COLOR;
 	float  depth	: DEPTH;
 };
 
+float3 calculateLight(float3 P, float3 N, float3 eyePosition,
+						float3 Ka, float3 Kd, float3 Ks, float shininess,
+						float3 La, float3 Ld, float3 Ls, float3 Lp) {
+	// Ambient
+	float3 ambient = Ka * La;
+
+	// Diffuse
+	float3 L = normalize(Lp - P);
+	float diffuseLight = max(dot(N, L), 0);
+	float3 diffuse = Kd * Ld * diffuseLight;
+
+	// Specular
+	float3 V = normalize(eyePosition - P);
+	float3 H = normalize(L + V);
+	float specularLight = pow(max(dot(N, H), 0), shininess);
+	if (diffuseLight <= 0) specularLight = 0;
+	float3 specular = Ks * Ls * specularLight;
+
+	return ambient+diffuse+specular;
+}
+
 output main(float3 position : TEXCOORD0,
 			float3 normal	: TEXCOORD1,
 			uniform float4x4 modelViewProj : state.matrix.mvp,
-			uniform float3   lightAmbient  : state.light[0].ambient,
-			uniform float3   lightDiffuse  : state.light[0].diffuse,
-			uniform float3   lightSpecular : state.light[0].specular,
-			uniform float3	 lightPosition : state.light[0].position,
+			uniform int lightCount,
 			uniform float3	 eyePosition,
 			uniform float3	 Ka : state.material.ambient,
 			uniform float3	 Kd : state.material.diffuse,
@@ -20,22 +42,26 @@ output main(float3 position : TEXCOORD0,
 	float3 P = position.xyz;
 	float3 N = normal;
 
-	// Ambient
-	float3 ambient = Ka * lightAmbient;
+	float3 combinedLight;
+	combinedLight.rgb = (0,0,0);
 
-	// Diffuse
-	float3 L = normalize(lightPosition - P);
-	float diffuseLight = max(dot(N, L), 0);
-	float3 diffuse = Kd * lightDiffuse * diffuseLight;
+	// Loop over all the lights (the maximum is 8), but CG shaders
+	// freak out if they don't know the maximum iterations of a loop
+	// so assume the number of lights is the maximum
+	for (int z=0; z<8; z++) {
+		// If there are actually less than the maximum number of
+		// lights bail out early if necessary
+		if (z<lightCount) {
+			combinedLight += calculateLight(P, N, eyePosition,
+								Ka, Kd, Ks, shininess, glstate.light[z].ambient.rgb,
+								glstate.light[z].diffuse.rgb, glstate.light[z].specular.rgb,
+								glstate.light[z].position.xyz);
+		}
+		// We can't break in the 'else' case otherwise
+		// this shader program won't compile
+	}
 
-	// Specular
-	float3 V = normalize(eyePosition - P);
-	float3 H = normalize(L + V);
-	float specularLight = pow(max(dot(N, H), 0), shininess);
-	if (diffuseLight <= 0) specularLight = 0;
-	float3 specular = Ks * lightSpecular * specularLight;
-
-	OUT.color.rgb = ambient + diffuse + specular;
+	OUT.color.rgb = combinedLight;
 	OUT.color.a = 1;
 	OUT.depth = length(position.xyz - eyePosition)/100;
 

@@ -1,3 +1,6 @@
+// Code here is adopted from the NVIDIA examples:
+//	09_vertex_lighting
+
 struct output {
 	float4 pos	    : POSITION;
 	float3 position	: TEXCOORD0;
