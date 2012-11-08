@@ -21,8 +21,8 @@ using namespace Raytracer;
 
 #define APP_NAME "Assignment 3"
 
-int winW = 256;
-int winH = 256;
+int winW = 512;
+int winH = 512;
 
 int showShadows = 0;
 int showReflectionColor = 0;
@@ -199,16 +199,18 @@ void glutResize(int width, int height) {
 }
 
 void glutKeyboard(unsigned char key, int x, int y) {
-	if (key == 's' || key == 'S') {
-		showShadows = !showShadows;
-		printf("Shadows on? %d\n", showShadows);
-	} else if (key == 'r' || key == 'R') {
-		showReflectionColor = !showReflectionColor;
-		printf("Reflection on? %d\n", showReflectionColor);
-	} else if (key == 'f' || key == 'F') {
+	//if (key == 's' || key == 'S') {
+	//	showShadows = !showShadows;
+	//	printf("Shadows on? %d\n", showShadows);
+	//} else if (key == 'r' || key == 'R') {
+	//	showReflectionColor = !showReflectionColor;
+	//	printf("Reflection on? %d\n", showReflectionColor);
+	//} else if (key == 'f' || key == 'F') {
 		showRefractedColor = !showRefractedColor;
 		printf("Refraction on? %d\n", showRefractedColor);
-	} else if (key == 'l' || key == 'L') {
+	//} else 
+	if ((key == 'l' || key == 'L') && light_info.size() == 0) {
+		// Only allow this is are using default lighting
 		lightOverhead = !lightOverhead;
 		if (lightOverhead)
 			default_light_position[2] = 0.0f;
