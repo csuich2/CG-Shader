@@ -158,10 +158,12 @@ void main() {
 		while (!light_info.empty()) {
 			LightInfo info = light_info.back();
 			light_info.pop_back();
+			GLfloat position[4] = {info.position[0], info.position[1],
+				info.position[2], 1.0};
 			GLfloat ambient[3]  = {info.La, info.La, info.La};
 			GLfloat diffuse[3]  = {info.Ld, info.Ld, info.Ld};
 			GLfloat specular[3] = {info.Ls, info.Ls, info.Ls};
-			glLightfv(GL_LIGHT0+i, GL_POSITION, info.position);
+			glLightfv(GL_LIGHT0+i, GL_POSITION, position);
 			glLightfv(GL_LIGHT0+i, GL_SPECULAR, ambient);
 			glLightfv(GL_LIGHT0+i, GL_DIFFUSE, diffuse);
 			glLightfv(GL_LIGHT0+i, GL_AMBIENT, specular);
@@ -216,7 +218,10 @@ void glutKeyboard(unsigned char key, int x, int y) {
 			default_light_position[2] = 0.0f;
 		else
 			default_light_position[2] = -5.0f;
+		glPushMatrix();
+		glLoadIdentity();
 		glLightfv(GL_LIGHT0, GL_POSITION, default_light_position);
+		glPopMatrix();
 		printf("Light overhead? %d\n", lightOverhead);
 	} else if (key == 'u' || key == 'U') {
 		printf("Unitizing models\n");
